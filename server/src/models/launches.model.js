@@ -1,3 +1,5 @@
+const { fetchNewConnection } = require('./launches.mariadb');
+const { v4: uuidV4 } = require('uuid');
 const launches = new Map();
 
 let latestFlightNumber = 100;
@@ -23,7 +25,41 @@ function getAllLaunches() {
   return Array.from(launches.values());
 }
 
+function addNewLaunchSql({
+  mission,
+  rocket,
+  launchDate,
+  target,
+  customer,
+  upcoming,
+  success,
+}) {
+  const dbConnection = fetchNewConnection();
+  console.log(launchDate);
+  dbConnection.query(
+    'INSERT INTO launches (flight_id, mission, rocket, launch_date, target, customer, upcoming, success) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [
+      uuidV4(),
+      mission,
+      rocket,
+      launchDate,
+      target,
+      customer.join(),
+      upcoming,
+      success,
+    ],
+    (err, result) => {
+      if (err) {
+        throw err;
+      } else {
+        console.log('queryResult: ', result);
+      }
+    },
+  );
+}
+
 function addNewLaunch(launch) {
+  console.log(launch);
   latestFlightNumber++;
   launches.set(
     latestFlightNumber,
@@ -32,8 +68,15 @@ function addNewLaunch(launch) {
       success: true,
       customer: ['ZTM', 'NASA'],
       flightNumber: latestFlightNumber,
-    })
+    }),
   );
+
+  const newLaunch = Object.assign(launch, {
+    upcoming: true,
+    success: true,
+    customer: ['ZTM', 'NASA'],
+  });
+  addNewLaunchSql(newLaunch);
 }
 
 function abortLaunchById(launchId) {
@@ -47,5 +90,5 @@ module.exports = {
   existLaunchWithId,
   getAllLaunches,
   addNewLaunch,
-  abortLaunchById
+  abortLaunchById,
 };
