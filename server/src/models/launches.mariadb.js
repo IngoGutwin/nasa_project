@@ -1,4 +1,4 @@
-const mariadb = require('mariadb/callback');
+const mariadb = require('mariadb');
 require('dotenv').config();
 
 const DATABASE_CONFIG = {
@@ -11,16 +11,8 @@ const DATABASE_CONFIG = {
   skipSetTimezone: true
 };
 
-function fetchNewConnection() {
-  const connection = mariadb.createConnection(DATABASE_CONFIG);
-  connection.connect(err => {
-    if (err) {
-      console.error('connection error: ', err);
-    } else {
-      console.log('connection established, id: ', connection.threadId);
-    };
-  });
-  return connection;
+async function fetchNewConnection() {
+  return await mariadb.createConnection(DATABASE_CONFIG);
 }
 
 module.exports = {

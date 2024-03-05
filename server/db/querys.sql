@@ -1,58 +1,51 @@
-CREATE TABLE launches (
-  flight_id VARCHAR(255) PRIMARY KEY,
-  mission VARCHAR(255),
-  rocket VARCHAR(255),
-  launch_date VARCHAR(255),
-  target VARCHAR(255),
-  customer VARCHAR(255),
-  upcoming BOOLEAN DEFAULT true,
-  success BOOLEAN DEFAULT true
-);
-
-CREATE TABLE launch_dates (
-  launch_date VARCHAR(255),
-  flight_id VARCHAR(255),
-  FOREIGN KEY (flight_id) 
-  REFERENCES launches(flight_id)
-  ON DELETE CASCADE
-  ON UPDATE RESTRICT
-);
-
-CREATE TABLE rockets (
-  rocket_name VARCHAR(255) NOT NULL,
-  rocket_id VARCHAR(255) NOT NULL,
-  FOREIGN KEY (rocket_id) 
-  REFERENCES launches(flight_id)
-  ON DELETE CASCADE
-  ON UPDATE RESTRICT
-);
-
-CREATE TABLE mission {
-    mission VARCHAR(255),
-    
-};
-
-
-DROP TABLE launches;
-
-DROP TABLE targets;
-
-DROP TABLE rockets;
-
-DROP TABLE launch_dates;
-
-SELECT * FROM launches;
-
-
-INSERT INTO targets (target_name) VALUES ('mars');
-
-INSERT INTO launches VALUES (
-    'kdldkls3234jkjj',
-    'Kepler',
-    'KD1,KD1',
-    true,
-    true,
-    NULL,
-    NULL,
-    NULL
+CREATE TABLE habitablePlanets (
+    kepid INT,
+    kepoi_name VARCHAR(50),
+    kepler_name VARCHAR(50),
+    koi_disposition VARCAR(10),
+    koi_pdisposition VARCHAR(20),
+    koi_score FLOAT,
+    koi_fpflag_nt FLOAT,
+    koi_fpflag_ss FLOAT,
+    koi_fpflag_co FLOAT,
+    koi_fpflag_ec FLOAT,
+    koi_period FLOAT,
+    koi_period_err1 FLOAT,
+    koi_period_err2 FLOAT,
+    koi_time0bk FLOAT,
+    koi_time0bk_err1 FLOAT,
+    koi_time0bk_err2 FLOAT,
+    koi_impact FLOAT,
+    koi_impact_err1 FLOAT,
+    koi_impact_err2 FLOAT,
+    koi_duration FLOAT,
+    koi_duration_err1 FLOAT,
+    koi_duration_err2 FLOAT,
+    koi_depth FLOAT,
+    koi_depth_err1 FLOAT,
+    koi_depth_err2 FLOAT,
+    koi_prad FLOAT,
+    koi_prad_err1 FLOAT,
+    koi_prad_err2 FLOAT,
+    koi_teq FLOAT,
+    koi_teq_err1 FLOAT,
+    koi_teq_err2 FLOAT,
+    koi_insol FLOAT,
+    koi_insol_err1 FLOAT,
+    koi_insol_err2 FLOAT,
+    koi_model_snr FLOAT,
+    koi_tce_plnt_num FLOAT,
+    koi_tce_delivname VARCHAR(20),
+    koi_steff FLOAT,
+    koi_steff_err1 FLOAT,
+    koi_steff_err2 FLOAT,
+    koi_slogg FLOAT,
+    koi_slogg_err1 FLOAT,
+    koi_slogg_err2 FLOAT,
+    koi_srad FLOAT,
+    koi_srad_err1 FLOAT,
+    koi_srad_err2 FLOAT,
+    ra FLOAT,
+    dec FLOAT,
+    koi_kepmag FLOAT"
 );

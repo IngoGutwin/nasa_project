@@ -1,94 +1,167 @@
 const { fetchNewConnection } = require('./launches.mariadb');
 const { v4: uuidV4 } = require('uuid');
-const launches = new Map();
+const axios = require('axios');
 
-let latestFlightNumber = 100;
-
-function existLaunchWithId(launchId) {
-  return launches.has(launchId);
+async function getAllLaunches() {
+  let connection;
+  try {
+    connection = await fetchNewConnection();
+    let launches = await connection.query(
+      'SELECT flight_number, launch_date, mission, rocket, target, customer, upcoming FROM launches'
+    );
+    let spaceXLaunches = await connection.query(
+      'SELECT flight_number, launch_date, mission, rocket, customer, upcoming FROM space_x_launches WHERE success IS NOT NULL'
+    );
+    return [...launches, ...spaceXLaunches];
+  } catch (err) {
+    console.error(err);
+  } finally {
+    connection.end();
+  }
 }
 
-const launch = {
-  flightNumber: 100,
-  mission: 'Kepler Exploration X',
-  rocket: 'Explorer IS1',
-  launchDate: new Date('January 27, 2030'),
-  target: 'Kepler-442 b',
-  customer: ['ZTM', 'NASA'],
-  upcoming: true,
-  success: true,
-};
+const SPACE_API_URL = 'https://api.spacexdata.com/v4/launches/query';
 
-launches.set(launch.flightNumber, launch);
-
-function getAllLaunches() {
-  return Array.from(launches.values());
+async function checkIfSpaceXDataIsLoaded() {
+  let connection;
+  try {
+    connection = await fetchNewConnection();
+    let result = await connection.query('SELECT flight_number FROM space_x_launches');
+    if (result.length < 1) {
+      return false;
+    };
+    return true;
+  } catch (err) {
+    console.error(err);
+  } finally {
+    connection.end();
+  }
 }
 
-function addNewLaunchSql({
-  mission,
-  rocket,
-  launchDate,
-  target,
-  customer,
-  upcoming,
-  success,
-}) {
-  const dbConnection = fetchNewConnection();
-  console.log(launchDate);
-  dbConnection.query(
-    'INSERT INTO launches (flight_id, mission, rocket, launch_date, target, customer, upcoming, success) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [
-      uuidV4(),
-      mission,
-      rocket,
-      launchDate,
-      target,
-      customer.join(),
-      upcoming,
-      success,
-    ],
-    (err, result) => {
-      if (err) {
-        throw err;
-      } else {
-        console.log('queryResult: ', result);
+/**
+ * const launch = {
+ *  flightNumber: 100, //flight_number
+ *  mission: '', // name 
+ *  rocket: '', //rocket.name
+ *  launchDate: '', // date_local
+ *  target: '', // not applicable
+ *  customer: '', //payload.customers for each payload
+ *  upcoming: true, // upcoming
+ *  success: true, // success
+ * };
+ */
+async function loadSpaceXLaunchData() {
+  let isDataLoaded = await checkIfSpaceXDataIsLoaded();
+  if (!isDataLoaded) {
+    const response = await axios.post(SPACE_API_URL, {
+      query: {},
+      options: {
+        pagination: false,
+        populate: [
+          {
+            path: 'rocket',
+            select: {
+              name: 1
+            }
+          },
+          {
+            path: 'payloads',
+            select: {
+              customers: 1
+            }
+          }
+        ]
       }
-    },
-  );
+    });
+    let launchData = mapSpaceXLaunches(response.data.docs);
+    await saveSpaceXLaunches(launchData);
+  }
 }
 
-function addNewLaunch(launch) {
-  console.log(launch);
-  latestFlightNumber++;
-  launches.set(
-    latestFlightNumber,
-    Object.assign(launch, {
-      upcoming: true,
-      success: true,
-      customer: ['ZTM', 'NASA'],
-      flightNumber: latestFlightNumber,
-    }),
-  );
+async function saveSpaceXLaunches(launchData) {
+  let connection;
+  try {
+    connection = await fetchNewConnection();
+    for (let i = 0; i < launchData.length; i++) {
+      let launch = launchData[i];
+      console.log(launch);
+      let result = await connection.query(
+        'INSERT INTO space_x_launches (flight_number, mission, rocket, launch_date, customer, upcoming, success) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [launch.flightNumber, launch.mission, launch.rocket, launch.launchDate, launch.customers.join(', '), launch.upcoming, launch.success]
+      );
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    connection.end();
+  }
+}
 
-  const newLaunch = Object.assign(launch, {
+function mapSpaceXLaunches(launchDocs) {
+  return launchDocs.map(launchDoc => {
+    const payloads = launchDoc['payloads'];
+    const customers = payloads.flatMap((payload) => {
+      return payload['customers'];
+    });
+
+    return {
+      flightNumber: launchDoc['flight_number'],
+      mission: launchDoc['name'],
+      rocket: launchDoc['rocket']['name'],
+      launchDate: launchDoc['date_local'],
+      upcoming: launchDoc['upcoming'],
+      success: launchDoc['success'],
+      customers
+    };
+  });
+}
+
+async function addNewLaunch({ mission, rocket, launchDate, target, customer }) {
+  const launch = {
+    flight_id: uuidV4(),
+    mission: mission,
+    rocket: rocket,
+    launchDate: launchDate,
+    target: target,
+    customer: customer?.join(', ') || ['ZTM', 'NASA'].join(', '),
     upcoming: true,
     success: true,
-    customer: ['ZTM', 'NASA'],
-  });
-  addNewLaunchSql(newLaunch);
+  };
+  console.log(launch);
+  let connection;
+  try {
+    connection = await fetchNewConnection();
+    await connection.query(
+      'INSERT INTO launches (flight_id, mission, rocket, launch_date, target, customer, upcoming, success) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      Object.values(launch)
+    );
+  } catch (err) {
+    console.error(err);
+  } finally {
+    connection.end();
+  }
 }
 
-function abortLaunchById(launchId) {
-  const aborted = launches.get(launchId);
-  aborted.upcoming = false;
-  aborted.success = false;
-  return aborted;
+async function abortLaunchById(launchId) {
+  let connection;
+  try {
+    connection = await fetchNewConnection();
+    await connection.query(
+      'UPDATE launches SET upcoming = false, success = false WHERE flight_number = ? ',
+      [launchId],
+    );
+    return true;
+  } catch (err) {
+    console.error(err);
+  } finally {
+    connection.end();
+  }
 }
 
 module.exports = {
-  existLaunchWithId,
+  loadSpaceXLaunchData,
   getAllLaunches,
   addNewLaunch,
   abortLaunchById,
 };
+

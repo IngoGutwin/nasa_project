@@ -11,11 +11,11 @@ const History = props => {
               {color: launch.success ? "greenyellow" : "red"}
             }>█</span>
           </td>
-          <td>{launch.flightNumber}</td>
-          <td>{new Date(launch.launchDate).toDateString()}</td>
+          <td>{launch.flight_number}</td>
+          <td>{new Date(launch.launch_date).toDateString()}</td>
           <td>{launch.mission}</td>
           <td>{launch.rocket}</td>
-          <td>{launch.customers?.join(", ")}</td>
+          <td>{launch.customer}</td>
         </tr>;
       });
   }, [props.launches]);

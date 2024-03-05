@@ -2,9 +2,11 @@
   "printWidth": 80,
   "tabWidth": 2,
   "userTabs": false,
-  "trailingComma": "all",
+  "trailingComma": "es5",
   "bracketSpacing": true,
   "semi": true,
   "singleQuote": true,
-  "arrowParens": "always"
+  "arrowParens": "always",
+  "parser": "sql",
+  "plugins": ["prettier-plugin-slq"]
 }
