@@ -1,16 +1,17 @@
-const { fetchNewConnection } = require('./launches.mariadb');
+const { fetchNewConnection } = require('../services/mariadb.service');
 const { v4: uuidV4 } = require('uuid');
 const axios = require('axios');
 
-async function getAllLaunches() {
+async function getAllLaunches(skip, limit) {
   let connection;
   try {
     connection = await fetchNewConnection();
     let launches = await connection.query(
-      'SELECT flight_number, launch_date, mission, rocket, target, customer, upcoming FROM launches'
+      'SELECT flight_number, launch_date, mission, rocket, target, customer, upcoming, success FROM launches WHERE flight_number > ? AND flight_number < ?', [skip, (skip + limit)]
     );
     let spaceXLaunches = await connection.query(
-      'SELECT flight_number, launch_date, mission, rocket, customer, upcoming FROM space_x_launches WHERE success IS NOT NULL'
+      'SELECT flight_number, launch_date, mission, rocket, customer, upcoming, success FROM space_x_launches WHERE flight_number > ? AND flight_number < ? AND success IS NOT NULL',
+      [skip, (skip + limit)]
     );
     return [...launches, ...spaceXLaunches];
   } catch (err) {
@@ -84,8 +85,7 @@ async function saveSpaceXLaunches(launchData) {
     connection = await fetchNewConnection();
     for (let i = 0; i < launchData.length; i++) {
       let launch = launchData[i];
-      console.log(launch);
-      let result = await connection.query(
+      await connection.query(
         'INSERT INTO space_x_launches (flight_number, mission, rocket, launch_date, customer, upcoming, success) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [launch.flightNumber, launch.mission, launch.rocket, launch.launchDate, launch.customers.join(', '), launch.upcoming, launch.success]
       );
@@ -127,7 +127,6 @@ async function addNewLaunch({ mission, rocket, launchDate, target, customer }) {
     upcoming: true,
     success: true,
   };
-  console.log(launch);
   let connection;
   try {
     connection = await fetchNewConnection();

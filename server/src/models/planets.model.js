@@ -1,7 +1,7 @@
 const { parse } = require('csv-parse');
 const fs = require('node:fs');
 const path = require('node:path');
-const { fetchNewConnection } = require('./launches.mariadb');
+const { fetchNewConnection } = require('./../services/mariadb.service');
 const { keplerPlanetsTableSql, generateInsertSqlQuery } = require('./sql.queries');
 
 async function createPlanetsTable() {
